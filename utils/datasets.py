@@ -15,6 +15,7 @@ from multiprocessing.pool import Pool, ThreadPool
 from pathlib import Path
 from threading import Thread
 from zipfile import ZipFile
+import matplotlib.pyplot as plt
 
 import cv2
 import numpy as np
@@ -224,6 +225,7 @@ class LoadImages:
         img = letterbox(img0, self.img_size, stride=self.stride, auto=self.auto)[0]
 
         # Convert
+
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)
 
@@ -237,6 +239,51 @@ class LoadImages:
     def __len__(self):
         return self.nf  # number of files
 
+class LoadNumpyImages:
+    # YOLOv5 image/video dataloader, i.e. `python detect.py --source image.jpg/vid.mp4`
+    def __init__(self, source, img_size=640, stride=32, auto=True):
+
+        ni = 1
+
+        self.img_size = img_size
+        self.stride = stride
+        self.nf = 1
+        self.mode = 'image'
+        self.auto = auto
+
+        self.source = source
+
+        assert self.nf > 0, f'No images or videos found in {p}. ' \
+                            f'Supported formats are:\nimages: {IMG_FORMATS}\nvideos: {VID_FORMATS}'
+
+    def __iter__(self):
+        self.count = 0
+        return self
+
+    def __next__(self):
+        if self.count == self.nf:
+            raise StopIteration
+
+        # Read image
+        self.count += 1
+
+        # Convert
+        img = self.source
+
+        img = letterbox(img, self.img_size, stride=self.stride, auto=self.auto)[0]
+
+        img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+        img = np.ascontiguousarray(img)
+
+        return img
+
+    def new_video(self, path):
+        self.frame = 0
+        self.cap = cv2.VideoCapture(path)
+        self.frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    def __len__(self):
+        return self.nf  # number of files
 
 class LoadWebcam:  # for inference
     # YOLOv5 local webcam dataloader, i.e. `python detect.py --source 0`
